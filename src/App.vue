@@ -5,7 +5,9 @@
         <h1 class="title">
           Visualizador de <span class="gradient-text">Algoritmos</span>
         </h1>
-        <p class="subtitle">Explore algoritmos de ordenação de forma interativa</p>
+        <p class="subtitle">
+          Explore algoritmos de ordenação de forma interativa
+        </p>
       </header>
 
       <div class="section">
@@ -29,38 +31,38 @@
             <span v-if="!loading">▶ Executar</span>
             <span v-else class="loading-dots">Carregando</span>
           </button>
-          
+
           <div class="playback-controls">
-            <button 
-              class="btn btn-icon" 
-              @click="prevStep" 
+            <button
+              class="btn btn-icon"
+              @click="prevStep"
               :disabled="stepIndex === 0 || !steps.length"
               title="Passo anterior"
             >
               ◀
             </button>
-            <button 
-              class="btn btn-secondary" 
+            <button
+              class="btn btn-secondary"
               @click="togglePlay"
               :disabled="!steps.length"
             >
-              {{ playing ? '⏸ Pausar' : '▶ Reproduzir' }}
+              {{ playing ? "⏸ Pausar" : "▶ Reproduzir" }}
             </button>
-            <button 
-              class="btn btn-icon" 
-              @click="nextStep" 
+            <button
+              class="btn btn-icon"
+              @click="nextStep"
               :disabled="stepIndex >= steps.length - 1 || !steps.length"
               title="Próximo passo"
             >
               ▶
             </button>
           </div>
-          
+
           <div class="speed-control" v-if="steps.length">
             <label class="speed-label">Velocidade:</label>
             <div class="speed-buttons">
-              <button 
-                v-for="spd in speedOptions" 
+              <button
+                v-for="spd in speedOptions"
                 :key="spd.value"
                 :class="['speed-btn', { active: speed === spd.value }]"
                 @click="setSpeed(spd.value)"
@@ -92,11 +94,22 @@
       <div class="section visualization-section">
         <div v-if="!currentArray.length && !loading" class="empty-state">
           <div class="empty-icon">📊</div>
-          <p class="empty-text">Clique em "Executar" para começar a visualização</p>
+          <p class="empty-text">
+            Clique em "Executar" para começar a visualização
+          </p>
         </div>
-        
-        <div v-else-if="showMergeVisualization" class="merge-visualization">
-          <div class="merge-section" v-if="currentStep.left && currentStep.left.length">
+
+        <div
+          v-else-if="showMergeVisualization"
+          :class="[
+            'merge-visualization',
+            currentStep.type === 'merge' ? 'is-merge' : 'is-divide',
+          ]"
+        >
+          <div
+            class="merge-section"
+            v-if="currentStep.left && currentStep.left.length"
+          >
             <h3 class="merge-label">Esquerda</h3>
             <div class="bars-container-small">
               <div class="bars">
@@ -107,7 +120,7 @@
                 >
                   <div
                     class="bar bar-left"
-                    :style="{ height: value * 3 + 'px' }"
+                    :style="{ height: getHeight(value, 160) }"
                   >
                     <span class="bar-value">{{ value }}</span>
                   </div>
@@ -115,12 +128,13 @@
               </div>
             </div>
           </div>
-          
-          <div class="merge-arrow" v-if="currentStep.type === 'merge'">
-            ↓
-          </div>
-          
-          <div class="merge-section" v-if="currentStep.right && currentStep.right.length">
+
+          <div class="merge-arrow" v-if="currentStep.type === 'merge'">↓</div>
+
+          <div
+            class="merge-section"
+            v-if="currentStep.right && currentStep.right.length"
+          >
             <h3 class="merge-label">Direita</h3>
             <div class="bars-container-small">
               <div class="bars">
@@ -131,7 +145,7 @@
                 >
                   <div
                     class="bar bar-right"
-                    :style="{ height: value * 3 + 'px' }"
+                    :style="{ height: getHeight(value, 160) }"
                   >
                     <span class="bar-value">{{ value }}</span>
                   </div>
@@ -139,9 +153,11 @@
               </div>
             </div>
           </div>
-          
+
           <div class="merge-result" v-if="currentArray.length">
-            <h3 class="merge-label">{{ currentStep.type === 'merge' ? 'Resultado' : 'Array' }}</h3>
+            <h3 class="merge-label">
+              {{ currentStep.type === "merge" ? "Resultado" : "Array" }}
+            </h3>
             <div class="bars-container">
               <div class="bars">
                 <div
@@ -161,7 +177,7 @@
             </div>
           </div>
         </div>
-        
+
         <div v-else-if="currentArray.length" class="bars-container">
           <div class="bars">
             <div
@@ -206,160 +222,163 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import axios from 'axios'
+import { ref, computed } from "vue";
+import axios from "axios";
 
-const algorithms = ['bubble', 'merge', 'quick']
-const selected = ref('bubble')
-const loading = ref(false)
+const algorithms = ["bubble", "merge", "quick"];
+const selected = ref("bubble");
+const loading = ref(false);
 
-const steps = ref([])
-const stepIndex = ref(0)
-const playing = ref(false)
-const speed = ref(600)
-let interval = null
+const steps = ref([]);
+const stepIndex = ref(0);
+const playing = ref(false);
+const speed = ref(600);
+let interval = null;
 
 const speedOptions = [
-  { label: '0.5x', value: 1200 },
-  { label: '1x', value: 600 },
-  { label: '1.5x', value: 400 },
-  { label: '2x', value: 200 }
-]
+  { label: "0.5x", value: 1200 },
+  { label: "1x", value: 600 },
+  { label: "1.5x", value: 400 },
+  { label: "2x", value: 200 },
+];
 
 const selectAlgorithm = (alg) => {
-  selected.value = alg
+  selected.value = alg;
   if (steps.value.length > 0) {
-    stop()
-    steps.value = []
-    stepIndex.value = 0
+    stop();
+    steps.value = [];
+    stepIndex.value = 0;
   }
-}
+};
 
 const getAlgorithmName = (alg) => {
   const names = {
-    bubble: 'Bubble Sort',
-    merge: 'Merge Sort',
-    quick: 'Quick Sort'
-  }
-  return names[alg] || alg
-}
+    bubble: "Bubble Sort",
+    merge: "Merge Sort",
+    quick: "Quick Sort",
+  };
+  return names[alg] || alg;
+};
 
 const getAlgorithmIcon = (alg) => {
   const icons = {
-    bubble: '🫧',
-    merge: '🔀',
-    quick: '⚡'
-  }
-  return icons[alg] || '📊'
-}
+    bubble: "🫧",
+    merge: "🔀",
+    quick: "⚡",
+  };
+  return icons[alg] || "📊";
+};
 
 const run = async () => {
-  stop()
-  loading.value = true
+  stop();
+  loading.value = true;
 
   try {
     const response = await axios.post(
       `http://localhost:8000/api/sort/${selected.value}`,
       {
-        array: generateArray()
+        array: generateArray(),
       }
-    )
+    );
 
-    steps.value = response.data.context.steps
-    stepIndex.value = 0
+    steps.value = response.data.context.steps;
+    stepIndex.value = 0;
   } catch (error) {
-    console.error('Erro ao executar algoritmo:', error)
-    alert('Erro ao executar o algoritmo. Verifique se o servidor está rodando.')
+    console.error("Erro ao executar algoritmo:", error);
+    alert(
+      "Erro ao executar o algoritmo. Verifique se o servidor está rodando."
+    );
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const generateArray = () => {
-  return Array.from({ length: 15 }, () =>
-    Math.floor(Math.random() * 50) + 5
-  )
-}
+  return Array.from({ length: 15 }, () => Math.floor(Math.random() * 50) + 5);
+};
 
-const currentStep = computed(() => steps.value[stepIndex.value])
+const currentStep = computed(() => steps.value[stepIndex.value]);
 
 const currentArray = computed(() => {
-  if (!currentStep.value) return []
+  if (!currentStep.value) return [];
 
-  if (currentStep.value.array) return currentStep.value.array
-  if (currentStep.value.result) return currentStep.value.result
-  if (currentStep.value.original) return currentStep.value.original
+  if (currentStep.value.array) return currentStep.value.array;
+  if (currentStep.value.result) return currentStep.value.result;
+  if (currentStep.value.original) return currentStep.value.original;
 
-  return []
-})
+  return [];
+});
 
 const showMergeVisualization = computed(() => {
-  if (!currentStep.value || selected.value !== 'merge') return false
-  return (currentStep.value.type === 'divide' || currentStep.value.type === 'merge') && 
-         (currentStep.value.left || currentStep.value.right)
-})
+  if (!currentStep.value || selected.value !== "merge") return false;
+  return (
+    (currentStep.value.type === "divide" ||
+      currentStep.value.type === "merge") &&
+    (currentStep.value.left || currentStep.value.right)
+  );
+});
 
 const nextStep = () => {
   if (stepIndex.value < steps.value.length - 1) {
-    stepIndex.value++
+    stepIndex.value++;
   }
-}
+};
 
 const prevStep = () => {
   if (stepIndex.value > 0) {
-    stepIndex.value--
+    stepIndex.value--;
   }
-}
+};
 
 const togglePlay = () => {
   if (playing.value) {
-    stop()
+    stop();
   } else {
-    play()
+    play();
   }
-}
+};
 
 const play = () => {
-  playing.value = true
+  playing.value = true;
   interval = setInterval(() => {
     if (stepIndex.value >= steps.value.length - 1) {
-      stop()
-      return
+      stop();
+      return;
     }
-    stepIndex.value++
-  }, speed.value)
-}
+    stepIndex.value++;
+  }, speed.value);
+};
 
 const setSpeed = (newSpeed) => {
-  speed.value = newSpeed
+  speed.value = newSpeed;
   if (playing.value) {
-    stop()
-    play()
+    stop();
+    play();
   }
-}
+};
 
 const stop = () => {
-  playing.value = false
-  clearInterval(interval)
-}
+  playing.value = false;
+  clearInterval(interval);
+};
 
 const progress = computed(() => {
-  if (steps.value.length <= 1) return 0
-  return (stepIndex.value / (steps.value.length - 1)) * 100
-})
+  if (steps.value.length <= 1) return 0;
+  return (stepIndex.value / (steps.value.length - 1)) * 100;
+});
 
 const barClass = (index) => {
-  if (!currentStep.value) return ''
+  if (!currentStep.value) return "";
 
-  const comparing = currentStep.value.comparing
-  const swapped = currentStep.value.swapped
+  const comparing = currentStep.value.comparing;
+  const swapped = currentStep.value.swapped;
 
   if (Array.isArray(comparing) && comparing.includes(index)) {
-    return 'compare'
+    return "compare";
   }
 
   if (Array.isArray(swapped) && swapped.includes(index)) {
-    return 'swap'
+    return "swap";
   }
 
   if (
@@ -367,12 +386,19 @@ const barClass = (index) => {
     Array.isArray(currentStep.value.array) &&
     currentStep.value.array[index] === currentStep.value.pivot
   ) {
-    return 'pivot'
+    return "pivot";
   }
 
-  return ''
-}
+  return "";
+};
 
+const maxValue = computed(() => {
+  return Math.max(...currentArray.value, 1);
+});
+
+const getHeight = (value, scale = 180) => {
+  return (value / maxValue.value) * scale + "px";
+};
 </script>
 
 <style scoped>
@@ -385,21 +411,29 @@ const barClass = (index) => {
   padding: 20px;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
   color: #f1f5f9;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter",
+    sans-serif;
   position: relative;
   overflow-x: hidden;
 }
 
 .app::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(52, 211, 153, 0.1) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 80%,
+      rgba(168, 85, 247, 0.08) 0%,
+      transparent 50%
+    );
   pointer-events: none;
 }
 
@@ -474,10 +508,14 @@ const barClass = (index) => {
 }
 
 .algorithm-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.1), rgba(16, 185, 129, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(52, 211, 153, 0.1),
+    rgba(16, 185, 129, 0.1)
+  );
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -602,14 +640,22 @@ const barClass = (index) => {
 }
 
 .loading-dots::after {
-  content: '...';
+  content: "...";
   animation: dots 1.5s steps(3, end) infinite;
 }
 
 @keyframes dots {
-  0%, 20% { content: '.'; }
-  40% { content: '..'; }
-  60%, 100% { content: '...'; }
+  0%,
+  20% {
+    content: ".";
+  }
+  40% {
+    content: "..";
+  }
+  60%,
+  100% {
+    content: "...";
+  }
 }
 
 .status-card {
@@ -740,7 +786,7 @@ const barClass = (index) => {
 }
 
 .bar::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent);
@@ -787,16 +833,31 @@ const barClass = (index) => {
 }
 
 @keyframes shake {
-  0%, 100% { transform: scale(1.08) rotate(2deg); }
-  25% { transform: scale(1.08) rotate(-2deg); }
-  75% { transform: scale(1.08) rotate(2deg); }
+  0%,
+  100% {
+    transform: scale(1.08) rotate(2deg);
+  }
+  25% {
+    transform: scale(1.08) rotate(-2deg);
+  }
+  75% {
+    transform: scale(1.08) rotate(2deg);
+  }
 }
 
 .merge-visualization {
   width: 100%;
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 24px;
+  align-items: start;
+}
+
+.merge-visualization.is-divide {
+  grid-template-columns: 1fr 1fr;
+}
+
+.merge-visualization.is-merge {
+  grid-template-columns: 1fr auto 1fr;
 }
 
 .merge-section {
@@ -821,16 +882,21 @@ const barClass = (index) => {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .merge-result {
-  margin-top: 16px;
-  padding-top: 24px;
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding-top: 16px;
   border-top: 2px solid #1e293b;
 }
-
 .bars-container-small {
   width: 100%;
   padding: 24px 20px;
