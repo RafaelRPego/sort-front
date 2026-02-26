@@ -99,6 +99,433 @@
           </p>
         </div>
 
+        <div v-else-if="showQuickVisualization" class="quick-visualization">
+          <div class="quick-step-description">
+            <span class="quick-step-label" :class="quickStepLabelClass">
+              {{ quickStepDescription }}
+            </span>
+          </div>
+
+          <template v-if="currentStep.type === 'pivot_selected'">
+            <div class="quick-section quick-section-full">
+              <h3 class="quick-label quick-label-pivot">
+                <span class="quick-label-icon">🎯</span> Seleção de Pivô
+              </h3>
+              <div class="bars-container">
+                <div class="bars">
+                  <div
+                    v-for="(value, index) in currentStep.array"
+                    :key="`pivot-${index}-${value}`"
+                    class="bar-wrapper"
+                  >
+                    <div
+                      class="bar"
+                      :class="value === currentStep.pivot ? 'pivot' : ''"
+                      :style="{ height: getHeight(value, 200) }"
+                    >
+                      <span class="bar-value">{{ value }}</span>
+                    </div>
+                    <span
+                      v-if="value === currentStep.pivot"
+                      class="pivot-indicator"
+                      >Pivô</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template
+            v-else-if="
+              currentStep.type === 'push_left' ||
+              currentStep.type === 'push_right'
+            "
+          >
+            <div class="quick-section quick-section-full">
+              <h3 class="quick-label">📦 Array sendo percorrido</h3>
+
+              <div class="bars-container">
+                <div class="bars">
+                  <div
+                    v-for="(value, index) in currentStep.array"
+                    :key="`scan-${index}`"
+                    class="bar-wrapper"
+                  >
+                    <div
+                      class="bar"
+                      :class="{
+                        pivot: value === currentStep.pivot,
+                        compare: index === currentStep.currentIndex,
+                      }"
+                      :style="{ height: getHeight(value, 200) }"
+                    >
+                      <span class="bar-value">{{ value }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="quick-partition-grid">
+              <div class="quick-section">
+                <h3 class="quick-label quick-label-left">
+                  <span class="quick-label-icon">◀</span> Esquerda
+                  <span class="quick-badge">{{
+                    currentStep.left ? currentStep.left.length : 0
+                  }}</span>
+                </h3>
+                <div class="bars-container-small">
+                  <div
+                    class="bars"
+                    v-if="currentStep.left && currentStep.left.length"
+                  >
+                    <div
+                      v-for="(value, index) in currentStep.left"
+                      :key="`left-${index}-${value}`"
+                      class="bar-wrapper"
+                    >
+                      <div
+                        class="bar bar-left"
+                        :class="
+                          value === currentStep.current &&
+                          currentStep.type === 'push_left'
+                            ? 'bar-current'
+                            : ''
+                        "
+                        :style="{ height: getHeight(value, 160) }"
+                      >
+                        <span class="bar-value">{{ value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="empty-partition">vazio</div>
+                </div>
+              </div>
+
+              <div class="quick-pivot-column">
+                <h3 class="quick-label quick-label-pivot">
+                  <span class="quick-label-icon">🎯</span> Pivô
+                </h3>
+                <div class="pivot-box">
+                  <div
+                    class="bar pivot pivot-standalone"
+                    :style="{ height: getHeight(currentStep.pivot, 160) }"
+                  >
+                    <span class="bar-value">{{ currentStep.pivot }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="quick-section">
+                <h3 class="quick-label quick-label-right">
+                  Direita
+                  <span class="quick-badge">{{
+                    currentStep.right ? currentStep.right.length : 0
+                  }}</span>
+                  <span class="quick-label-icon">▶</span>
+                </h3>
+                <div class="bars-container-small">
+                  <div
+                    class="bars"
+                    v-if="currentStep.right && currentStep.right.length"
+                  >
+                    <div
+                      v-for="(value, index) in currentStep.right"
+                      :key="`right-${index}-${value}`"
+                      class="bar-wrapper"
+                    >
+                      <div
+                        class="bar bar-right"
+                        :class="
+                          value === currentStep.current &&
+                          currentStep.type === 'push_right'
+                            ? 'bar-current'
+                            : ''
+                        "
+                        :style="{ height: getHeight(value, 160) }"
+                      >
+                        <span class="bar-value">{{ value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="empty-partition">vazio</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="current-element-row">
+              <span class="current-element-label">Classificando:</span>
+              <div
+                class="current-element-box"
+                :class="
+                  currentStep.type === 'push_left'
+                    ? 'current-left'
+                    : 'current-right'
+                "
+              >
+                {{ currentStep.current }}
+              </div>
+              <span class="current-element-arrow">
+                {{
+                  currentStep.type === "push_left"
+                    ? "→ vai para esquerda (menor que pivô)"
+                    : "→ vai para direita (maior ou igual ao pivô)"
+                }}
+              </span>
+            </div>
+          </template>
+
+          <template v-else-if="currentStep.type === 'partition'">
+            <div class="quick-partition-grid">
+              <div class="quick-section">
+                <h3 class="quick-label quick-label-left">
+                  <span class="quick-label-icon">◀</span> Esquerda
+                  <span class="quick-badge">{{
+                    currentStep.left ? currentStep.left.length : 0
+                  }}</span>
+                </h3>
+                <div class="bars-container-small">
+                  <div
+                    class="bars"
+                    v-if="currentStep.left && currentStep.left.length"
+                  >
+                    <div
+                      v-for="(value, index) in currentStep.left"
+                      :key="`left-${index}-${value}`"
+                      class="bar-wrapper"
+                    >
+                      <div
+                        class="bar bar-left"
+                        :style="{ height: getHeight(value, 160) }"
+                      >
+                        <span class="bar-value">{{ value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="empty-partition">vazio</div>
+                </div>
+              </div>
+
+              <div class="quick-pivot-column">
+                <h3 class="quick-label quick-label-pivot">
+                  <span class="quick-label-icon">🎯</span> Pivô
+                </h3>
+                <div class="pivot-box">
+                  <div
+                    class="bar pivot pivot-standalone"
+                    :style="{ height: getHeight(currentStep.pivot, 160) }"
+                  >
+                    <span class="bar-value">{{ currentStep.pivot }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="quick-section">
+                <h3 class="quick-label quick-label-right">
+                  Direita
+                  <span class="quick-badge">{{
+                    currentStep.right ? currentStep.right.length : 0
+                  }}</span>
+                  <span class="quick-label-icon">▶</span>
+                </h3>
+                <div class="bars-container-small">
+                  <div
+                    class="bars"
+                    v-if="currentStep.right && currentStep.right.length"
+                  >
+                    <div
+                      v-for="(value, index) in currentStep.right"
+                      :key="`right-${index}-${value}`"
+                      class="bar-wrapper"
+                    >
+                      <div
+                        class="bar bar-right"
+                        :style="{ height: getHeight(value, 160) }"
+                      >
+                        <span class="bar-value">{{ value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="empty-partition">vazio</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="quick-merge-result">
+              <h3 class="quick-label quick-label-merge">
+                <span class="quick-label-icon">↓</span> Array após Partição
+              </h3>
+              <div class="bars-container">
+                <div class="bars">
+                  <div
+                    v-for="(value, index) in currentStep.array"
+                    :key="`part-${index}-${value}`"
+                    class="bar-wrapper"
+                  >
+                    <div
+                      class="bar"
+                      :class="
+                        value === currentStep.pivot
+                          ? 'pivot'
+                          : currentStep.left && currentStep.left.includes(value)
+                          ? 'bar-left'
+                          : 'bar-right'
+                      "
+                      :style="{ height: getHeight(value, 200) }"
+                    >
+                      <span class="bar-value">{{ value }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template v-else-if="currentStep.type === 'merge_partition'">
+            <div class="quick-partition-grid">
+              <div class="quick-section">
+                <h3 class="quick-label quick-label-left">
+                  <span class="quick-label-icon">◀</span> Esquerda Ordenada
+                  <span class="quick-badge">{{
+                    currentStep.left ? currentStep.left.length : 0
+                  }}</span>
+                </h3>
+                <div class="bars-container-small">
+                  <div
+                    class="bars"
+                    v-if="currentStep.left && currentStep.left.length"
+                  >
+                    <div
+                      v-for="(value, index) in currentStep.left"
+                      :key="`sleft-${index}-${value}`"
+                      class="bar-wrapper"
+                    >
+                      <div
+                        class="bar bar-left"
+                        :style="{ height: getHeight(value, 160) }"
+                      >
+                        <span class="bar-value">{{ value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="empty-partition">vazio</div>
+                </div>
+              </div>
+
+              <div class="quick-pivot-column">
+                <h3 class="quick-label quick-label-pivot">
+                  <span class="quick-label-icon">🎯</span> Pivô
+                </h3>
+                <div class="pivot-box">
+                  <div
+                    class="bar pivot pivot-standalone"
+                    :style="{ height: getHeight(currentStep.pivot, 160) }"
+                  >
+                    <span class="bar-value">{{ currentStep.pivot }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="quick-section">
+                <h3 class="quick-label quick-label-right">
+                  Direita Ordenada
+                  <span class="quick-badge">{{
+                    currentStep.right ? currentStep.right.length : 0
+                  }}</span>
+                  <span class="quick-label-icon">▶</span>
+                </h3>
+                <div class="bars-container-small">
+                  <div
+                    class="bars"
+                    v-if="currentStep.right && currentStep.right.length"
+                  >
+                    <div
+                      v-for="(value, index) in currentStep.right"
+                      :key="`sright-${index}-${value}`"
+                      class="bar-wrapper"
+                    >
+                      <div
+                        class="bar bar-right"
+                        :style="{ height: getHeight(value, 160) }"
+                      >
+                        <span class="bar-value">{{ value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="empty-partition">vazio</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="quick-merge-arrows">
+              <span class="merge-arrow-left">↘</span>
+              <span class="merge-arrow-center">↓</span>
+              <span class="merge-arrow-right">↙</span>
+            </div>
+
+            <div class="quick-merge-result quick-merge-final">
+              <h3 class="quick-label quick-label-merge">
+                <span class="quick-label-icon">✅</span> Junção: [Esquerda] +
+                [Pivô] + [Direita]
+              </h3>
+              <div class="bars-container">
+                <div class="bars">
+                  <div
+                    v-for="(value, index) in currentStep.result"
+                    :key="`res-${index}-${value}`"
+                    class="bar-wrapper"
+                  >
+                    <div
+                      class="bar"
+                      :class="
+                        value === currentStep.pivot
+                          ? 'pivot'
+                          : currentStep.left && currentStep.left.includes(value)
+                          ? 'bar-left'
+                          : 'bar-right'
+                      "
+                      :style="{ height: getHeight(value, 200) }"
+                    >
+                      <span class="bar-value">{{ value }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="quick-section quick-section-full">
+              <h3 class="quick-label">
+                {{
+                  currentStep.type === "complete"
+                    ? "✅ Array Ordenado"
+                    : "📋 Array Inicial"
+                }}
+              </h3>
+              <div class="bars-container">
+                <div class="bars">
+                  <div
+                    v-for="(value, index) in currentArray"
+                    :key="`bar-${index}-${value}`"
+                    class="bar-wrapper"
+                  >
+                    <div
+                      class="bar"
+                      :class="
+                        currentStep.type === 'complete' ? 'bar-complete' : ''
+                      "
+                      :style="{ height: getHeight(value, 200) }"
+                    >
+                      <span class="bar-value">{{ value }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
         <div
           v-else-if="showMergeVisualization"
           :class="[
@@ -212,6 +639,14 @@
             <span>Pivô</span>
           </div>
           <div class="legend-item">
+            <div class="legend-color legend-left"></div>
+            <span>Esquerda</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color legend-right"></div>
+            <span>Direita</span>
+          </div>
+          <div class="legend-item">
             <div class="legend-color legend-default"></div>
             <span>Padrão</span>
           </div>
@@ -316,6 +751,39 @@ const showMergeVisualization = computed(() => {
       currentStep.value.type === "merge") &&
     (currentStep.value.left || currentStep.value.right)
   );
+});
+
+const showQuickVisualization = computed(() => {
+  if (!currentStep.value || selected.value !== "quick") return false;
+  return true;
+});
+
+const quickStepDescription = computed(() => {
+  if (!currentStep.value) return "";
+  const descriptions = {
+    initial: "Array inicial — pronto para ordenar",
+    pivot_selected: `Pivô selecionado: ${currentStep.value.pivot} — os elementos serão distribuídos em relação a ele`,
+    push_left: `${currentStep.value.current} é menor que o pivô ${currentStep.value.pivot} → vai para a esquerda`,
+    push_right: `${currentStep.value.current} é maior ou igual ao pivô ${currentStep.value.pivot} → vai para a direita`,
+    partition: `Partição concluída — [Esquerda] + [${currentStep.value.pivot}] + [Direita]`,
+    merge_partition: `Junção: subarrays ordenados unidos com o pivô ${currentStep.value.pivot} no centro`,
+    complete: "Ordenação concluída!",
+  };
+  return descriptions[currentStep.value.type] || currentStep.value.type;
+});
+
+const quickStepLabelClass = computed(() => {
+  if (!currentStep.value) return "";
+  const classes = {
+    initial: "qs-label-initial",
+    pivot_selected: "qs-label-pivot",
+    push_left: "qs-label-left",
+    push_right: "qs-label-right",
+    partition: "qs-label-partition",
+    merge_partition: "qs-label-merge",
+    complete: "qs-label-complete",
+  };
+  return classes[currentStep.value.type] || "";
 });
 
 const nextStep = () => {
@@ -769,6 +1237,7 @@ const getHeight = (value, scale = 180) => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
 }
 
 .bar {
@@ -824,12 +1293,30 @@ const getHeight = (value, scale = 180) => {
 
 .bar.pivot {
   background: linear-gradient(180deg, #a855f7 0%, #9333ea 100%);
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
-  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.5);
+  transform: scale(1.08);
 }
 
 .bar.pivot .bar-value {
   color: #fff;
+}
+
+.bar.bar-complete {
+  background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+  box-shadow: 0 4px 20px rgba(52, 211, 153, 0.5);
+  animation: complete-pulse 0.6s ease-out;
+}
+
+@keyframes complete-pulse {
+  0% {
+    transform: scaleY(0.9);
+  }
+  50% {
+    transform: scaleY(1.05);
+  }
+  100% {
+    transform: scaleY(1);
+  }
 }
 
 @keyframes shake {
@@ -843,6 +1330,250 @@ const getHeight = (value, scale = 180) => {
   75% {
     transform: scale(1.08) rotate(2deg);
   }
+}
+
+.quick-visualization {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.quick-step-description {
+  text-align: center;
+}
+
+.quick-step-label {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.qs-label-initial {
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+  border-color: #334155;
+}
+.qs-label-pivot {
+  background: rgba(168, 85, 247, 0.15);
+  color: #d8b4fe;
+  border-color: #7c3aed;
+}
+.qs-label-left {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border-color: #3b82f6;
+}
+.qs-label-right {
+  background: rgba(34, 211, 238, 0.15);
+  color: #67e8f9;
+  border-color: #06b6d4;
+}
+.qs-label-partition {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fde68a;
+  border-color: #f59e0b;
+}
+.qs-label-merge {
+  background: rgba(52, 211, 153, 0.15);
+  color: #6ee7b7;
+  border-color: #10b981;
+}
+.qs-label-complete {
+  background: rgba(52, 211, 153, 0.2);
+  color: #34d399;
+  border-color: #10b981;
+}
+
+.quick-partition-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.quick-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-section-full {
+  width: 100%;
+}
+
+.quick-pivot-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 80px;
+}
+
+.pivot-box {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px 12px;
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px dashed #7c3aed;
+  border-radius: 16px;
+  min-height: 120px;
+}
+
+.pivot-standalone {
+  width: clamp(32px, 5vw, 48px);
+}
+
+.quick-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+.quick-label-left {
+  color: #60a5fa;
+}
+.quick-label-right {
+  color: #22d3ee;
+}
+.quick-label-pivot {
+  color: #a855f7;
+}
+.quick-label-partition {
+  color: #f59e0b;
+}
+.quick-label-merge {
+  color: #34d399;
+}
+
+.quick-label-icon {
+  font-size: 1rem;
+}
+
+.quick-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(100, 116, 139, 0.3);
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+.current-element-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 24px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+
+.current-element-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.current-element-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+  transition: all 0.3s ease;
+}
+
+.current-left {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.4);
+}
+
+.current-right {
+  background: linear-gradient(135deg, #22d3ee, #06b6d4);
+  color: #042f2e;
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.4);
+}
+
+.current-element-arrow {
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.quick-merge-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 2px solid #1e293b;
+}
+
+.quick-merge-final {
+  border-top: 2px solid rgba(52, 211, 153, 0.3);
+  padding-top: 16px;
+}
+
+.quick-merge-arrows {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  text-align: center;
+  font-size: 1.5rem;
+  color: #34d399;
+  opacity: 0.7;
+  padding: 0 40px;
+}
+
+.merge-arrow-left {
+  text-align: right;
+  padding-right: 8px;
+}
+.merge-arrow-center {
+  padding: 0 4px;
+}
+.merge-arrow-right {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.pivot-indicator {
+  margin-top: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.bar.bar-current {
+  transform: scale(1.12);
+  filter: brightness(1.2);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.3);
 }
 
 .merge-visualization {
@@ -897,6 +1628,7 @@ const getHeight = (value, scale = 180) => {
   padding-top: 16px;
   border-top: 2px solid #1e293b;
 }
+
 .bars-container-small {
   width: 100%;
   padding: 24px 20px;
@@ -908,6 +1640,17 @@ const getHeight = (value, scale = 180) => {
 
 .bars-container-small .bars {
   min-height: 180px;
+}
+
+.empty-partition {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #334155;
+  font-style: italic;
+  letter-spacing: 0.05em;
 }
 
 .bar-left {
@@ -1012,6 +1755,14 @@ const getHeight = (value, scale = 180) => {
   background: linear-gradient(135deg, #a855f7, #9333ea);
 }
 
+.legend-left {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+}
+
+.legend-right {
+  background: linear-gradient(135deg, #22d3ee, #06b6d4);
+}
+
 .legend-default {
   background: linear-gradient(135deg, #34d399, #10b981);
 }
@@ -1065,6 +1816,15 @@ const getHeight = (value, scale = 180) => {
     width: 20px;
   }
 
+  .quick-partition-grid {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+  }
+
+  .quick-pivot-column {
+    min-width: 60px;
+  }
+
   .merge-visualization {
     gap: 16px;
   }
@@ -1075,6 +1835,16 @@ const getHeight = (value, scale = 180) => {
 
   .legend {
     gap: 12px;
+  }
+
+  .current-element-row {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .current-element-arrow {
+    font-size: 0.75rem;
   }
 }
 </style>
